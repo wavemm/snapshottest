@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import pytest
 
 from snapshottest.module import SnapshotModule, SnapshotTest
+from snapshottest.error import SnapshotNotFound
 
 
 class GenericSnapshotTest(SnapshotTest):
@@ -86,7 +87,7 @@ SNAPSHOTABLE_VALUES = [
 @pytest.mark.parametrize("value", SNAPSHOTABLE_VALUES, ids=repr)
 def test_snapshot_matches_itself(snapshot_test, value):
     # first run stores the value as the snapshot
-    snapshot_test.assert_match(value)
+    snapshot_test.assert_match(value, update=True)
     assert_snapshot_test_succeeded(snapshot_test)
 
     # second run should compare stored snapshot and also succeed
@@ -103,7 +104,7 @@ def test_snapshot_matches_itself(snapshot_test, value):
 ])
 def test_snapshot_does_not_match_other_values(snapshot_test, value, other_value):
     # first run stores the value as the snapshot
-    snapshot_test.assert_match(value)
+    snapshot_test.assert_match(value, update=True)
     assert_snapshot_test_succeeded(snapshot_test)
 
     # second run tries to match other_value, should fail
@@ -111,3 +112,8 @@ def test_snapshot_does_not_match_other_values(snapshot_test, value, other_value)
     with pytest.raises(AssertionError):
         snapshot_test.assert_match(other_value)
     assert_snapshot_test_failed(snapshot_test)
+
+def test_first_run_without_snapshots_fails(snapshot_test):
+    with pytest.raises(SnapshotNotFound):
+        snapshot_test.assert_match('foo', name="no_snapshot_exists_test")
+    assert snapshot_test.module.missing_snapshots == set(["test_mocked no_snapshot_exists_test"])
