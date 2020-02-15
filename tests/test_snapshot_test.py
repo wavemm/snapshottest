@@ -113,6 +113,7 @@ def test_snapshot_does_not_match_other_values(snapshot_test, value, other_value)
         snapshot_test.assert_match(other_value)
     assert_snapshot_test_failed(snapshot_test)
 
+
 def test_first_run_without_snapshots_fails(snapshot_test):
     with pytest.raises(SnapshotNotFound):
         snapshot_test.assert_match('foo', name="no_snapshot_exists_test")
