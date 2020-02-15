@@ -7,11 +7,17 @@ from .module import SnapshotModule
 def reporting_lines(testing_cli):
     successful_snapshots = SnapshotModule.stats_successful_snapshots()
     bold = ['bold']
+    new_snapshots = SnapshotModule.stats_new_snapshots()
     if successful_snapshots:
         yield (
             colored('{} snapshots passed', attrs=bold) + '.'
         ).format(successful_snapshots)
-    new_snapshots = SnapshotModule.stats_new_snapshots()
+    missing_snapshots = SnapshotModule.stats_missing_snapshots()
+    if missing_snapshots[0]:
+        yield (
+            colored("{} snapshots missing", "red", attrs=bold)
+            + " in {} test suites. Run with `--snapshot-update` to create them."
+        ).format(*missing_snapshots)
     if new_snapshots[0]:
         yield (
             colored('{} snapshots written', 'green', attrs=bold) + ' in {} test suites.'

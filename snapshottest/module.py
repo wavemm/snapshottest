@@ -24,6 +24,7 @@ class SnapshotModule(object):
         self.imports = defaultdict(set)
         self.visited_snapshots = set()
         self.new_snapshots = set()
+        self.missing_snapshots = set()
         self.failed_snapshots = set()
         self.imports['snapshottest'].add('Snapshot')
 
@@ -90,6 +91,10 @@ class SnapshotModule(object):
         return cls.stats_for_module(lambda module: len(module.new_snapshots))
 
     @classmethod
+    def stats_missing_snapshots(cls):
+        return cls.stats_for_module(lambda module: len(module.missing_snapshots))
+
+    @classmethod
     def stats_failed_snapshots(cls):
         return cls.stats_for_module(lambda module: len(module.failed_snapshots))
 
@@ -129,6 +134,9 @@ class SnapshotModule(object):
 
     def mark_failed(self, key):
         return self.failed_snapshots.add(key)
+
+    def mark_missing(self, key):
+        return self.missing_snapshots.add(key)
 
     @property
     def snapshot_dir(self):
@@ -220,6 +228,9 @@ class SnapshotTest(object):
     def fail(self):
         self.module.mark_failed(self.test_name)
 
+    def missing(self):
+        self.module.mark_missing(self.test_name)
+
     def store(self, data):
         formatter = Formatter.get_formatter(data)
         data = formatter.store(self, data)
@@ -232,16 +243,19 @@ class SnapshotTest(object):
     def assert_equals(self, value, snapshot):
         assert value == snapshot
 
-    def assert_match(self, value, name=''):
+    def assert_match(self, value, name="", update=False):
         self.curr_snapshot = name or self.snapshot_counter
         self.visit()
-        if self.update:
+        if self.update or update:
             self.store(value)
         else:
             try:
                 prev_snapshot = self.module[self.test_name]
             except SnapshotNotFound:
-                self.store(value)  # first time this test has been seen
+                # There is no snapshot for this test, run with --snapshot-update
+                # to create it
+                self.missing()
+                raise
             else:
                 try:
                     self.assert_value_matches_snapshot(value, prev_snapshot)
