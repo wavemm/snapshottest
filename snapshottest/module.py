@@ -168,9 +168,7 @@ class SnapshotModule(object):
                 'from {} import {}'.format(module, ', '.join(sorted(module_imports)))
                 for module, module_imports in sorted(self.imports.items())
             ])
-            snapshot_file.write('''# -*- coding: utf-8 -*-
-# snapshottest: v1 - https://goo.gl/zC4yUc
-from __future__ import unicode_literals
+            snapshot_file.write('''# snapshottest: v1 - https://goo.gl/zC4yUc
 
 {}
 
