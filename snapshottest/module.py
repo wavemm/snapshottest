@@ -4,6 +4,7 @@ import os
 import imp
 from collections import defaultdict
 import logging
+import subprocess
 
 from .snapshot import Snapshot
 from .formatter import Formatter
@@ -168,14 +169,29 @@ class SnapshotModule(object):
                 'from {} import {}'.format(module, ', '.join(sorted(module_imports)))
                 for module, module_imports in sorted(self.imports.items())
             ])
-            snapshot_file.write('''# snapshottest: v1 - https://goo.gl/zC4yUc
+            content = """# snapshottest: v1 - https://goo.gl/zC4yUc
 
 {}
 
 snapshots = Snapshot()
 
 {}
-'''.format(imports, '\n\n'.join(snapshots_declarations)))
+""".format(
+                imports, "\n\n".join(snapshots_declarations)
+            )
+
+            try:
+                content = subprocess.check_output(
+                    "$(git rev-parse --show-toplevel)/.root-venv/bin/black -",
+                    input=content,
+                    text=True,
+                    timeout=60,
+                    shell=True,
+                )
+            except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+                pass
+
+            snapshot_file.write(content)
 
     @classmethod
     def get_module_for_testpath(cls, test_filepath):
