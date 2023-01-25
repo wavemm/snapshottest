@@ -1,4 +1,7 @@
 from __future__ import absolute_import
+
+from termcolor import colored
+
 import pytest
 import re
 
@@ -15,6 +18,13 @@ def pytest_addoption(parser):
         default=False,
         dest='snapshot_update',
         help='Update the snapshots.'
+    )
+    group.addoption(
+        '--snapshot-partial-update',
+        action='store_true',
+        default=False,
+        dest='snapshot_partial_update',
+        help='Update the snapshots while keeping unvisited ones.'
     )
     group.addoption(
         '--snapshot-verbose',
@@ -63,6 +73,14 @@ class SnapshotSession(object):
         for line in reporting_lines('pytest'):
             tr.write_line(line)
 
+        if tr.config.option.snapshot_partial_update:
+            msg = (
+                "You used --snapshot-partial-update. "
+               "Beware that if you delete or rename tests, this partial update will keep the old snapshots. "
+               "Make sure you remove them manually or run a full --snapshots-update."
+            )
+            print(colored(msg, 'yellow', attrs=['bold']))
+
 
 def pytest_assertrepr_compare(op, left, right):
     if isinstance(left, PrettyDiff) and op == "==":
@@ -78,6 +96,11 @@ def snapshot(request):
 def pytest_terminal_summary(terminalreporter):
     if terminalreporter.config.option.snapshot_update:
         for module in SnapshotModule.get_modules():
+            module.delete_unvisited()
+            module.save()
+    elif terminalreporter.config.option.snapshot_partial_update:
+        for module in SnapshotModule.get_modules():
+            # for partial update don't delete unvisited snapshots
             module.save()
 
     terminalreporter.config._snapshotsession.display(terminalreporter)
