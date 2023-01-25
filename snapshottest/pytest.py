@@ -78,7 +78,6 @@ def snapshot(request):
 def pytest_terminal_summary(terminalreporter):
     if terminalreporter.config.option.snapshot_update:
         for module in SnapshotModule.get_modules():
-            module.delete_unvisited()
             module.save()
 
     terminalreporter.config._snapshotsession.display(terminalreporter)
