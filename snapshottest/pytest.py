@@ -46,7 +46,7 @@ class PyTestSnapshotTest(SnapshotTest):
 
     @property
     def update(self):
-        return self.request.config.option.snapshot_update
+        return self.request.config.option.snapshot_update or self.request.config.option.snapshot_partial_update
 
     @property
     def test_name(self):
