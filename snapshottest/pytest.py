@@ -77,7 +77,7 @@ class SnapshotSession(object):
             msg = (
                 "You used --snapshot-partial-update. "
                "Beware that if you delete or rename tests, this partial update will keep the old snapshots. "
-               "Make sure you remove them manually or run a full --snapshots-update."
+               "Make sure you remove them manually or run a full --snapshot-update."
             )
             print(colored(msg, 'yellow', attrs=['bold']))
 
