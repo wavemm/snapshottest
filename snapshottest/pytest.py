@@ -105,6 +105,10 @@ def pytest_terminal_summary(terminalreporter):
 
     terminalreporter.config._snapshotsession.display(terminalreporter)
 
+    # Reset loaded snapshots at the end of the test session.
+    # Needed for running tests in watch mode.
+    SnapshotModule._snapshot_modules = {}
+
 
 @pytest.mark.trylast  # force the other plugins to initialise, fixes issue with capture not being properly initialised
 def pytest_configure(config):
