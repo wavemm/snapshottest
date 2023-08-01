@@ -1,5 +1,5 @@
 import six
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 
 from .sorted_dict import SortedDict
 from .generic_repr import GenericRepr
@@ -47,6 +47,14 @@ class DefaultDictFormatter(TypeFormatter):
         return defaultdict(
             value.default_factory, (formatter.normalize(item) for item in value.items())
         )
+
+
+class OrderedDictFormatter(TypeFormatter):
+    def normalize(self, value, formatter):
+        iterator = iter(value.items()) if isinstance(value, dict) else iter(value)
+        # Normally we shouldn't need to turn this into a list, but some iterable
+        # constructors need a list not an iterator (e.g. unittest.mock.call).
+        return dict([formatter.normalize(item) for item in iterator])
 
 
 def trepr(s):
@@ -137,6 +145,7 @@ def default_formatters():
     return [
         TypeFormatter(type(None), format_none),
         DefaultDictFormatter(defaultdict, format_dict),
+        OrderedDictFormatter(OrderedDict, format_dict),
         CollectionFormatter(dict, format_dict),
         CollectionFormatter(tuple, format_tuple),
         CollectionFormatter(list, format_list),
