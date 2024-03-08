@@ -182,7 +182,7 @@ snapshots = Snapshot()
 
             try:
                 content = subprocess.check_output(
-                    "$(git rev-parse --show-toplevel)/.root-venv/bin/black -",
+                    "$(git rev-parse --show-toplevel)/.root-venv/bin/ruff format -",
                     input=content,
                     text=True,
                     timeout=60,
