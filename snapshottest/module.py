@@ -1,7 +1,8 @@
 import codecs
 import errno
 import os
-import imp
+import importlib.util
+import importlib.machinery
 from collections import defaultdict
 import logging
 import subprocess
@@ -12,6 +13,19 @@ from .error import SnapshotNotFound
 
 
 logger = logging.getLogger(__name__)
+
+
+# This is from
+# https://docs.python.org/3/whatsnew/3.12.html#imp
+def load_source(modname, filename):
+    loader = importlib.machinery.SourceFileLoader(modname, filename)
+    spec = importlib.util.spec_from_file_location(modname, filename, loader=loader)
+    module = importlib.util.module_from_spec(spec)
+    # The module is always executed and not cached in sys.modules.
+    # Uncomment the following line to cache the module.
+    # sys.modules[module.__name__] = module
+    loader.exec_module(module)
+    return module
 
 
 class SnapshotModule(object):
@@ -31,7 +45,7 @@ class SnapshotModule(object):
 
     def load_snapshots(self):
         try:
-            source = imp.load_source(self.module, self.filepath)
+            source = load_source(self.module, self.filepath)
         # except FileNotFoundError:  # Python 3
         except (IOError, OSError) as err:
             if err.errno == errno.ENOENT:
