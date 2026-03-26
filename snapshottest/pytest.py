@@ -17,14 +17,21 @@ def pytest_addoption(parser):
         action='store_true',
         default=False,
         dest='snapshot_update',
-        help='Update the snapshots.'
+        help='Update the snapshots while keeping unvisited ones.'
     )
     group.addoption(
         '--snapshot-partial-update',
         action='store_true',
         default=False,
         dest='snapshot_partial_update',
-        help='Update the snapshots while keeping unvisited ones.'
+        help='(Deprecated) Alias for --snapshot-update.'
+    )
+    group.addoption(
+        '--snapshot-full-update',
+        action='store_true',
+        default=False,
+        dest='snapshot_full_update',
+        help='Update the snapshots and delete unvisited ones.'
     )
     group.addoption(
         '--snapshot-verbose',
@@ -46,7 +53,8 @@ class PyTestSnapshotTest(SnapshotTest):
 
     @property
     def update(self):
-        return self.request.config.option.snapshot_update or self.request.config.option.snapshot_partial_update
+        opt = self.request.config.option
+        return opt.snapshot_update or opt.snapshot_partial_update or opt.snapshot_full_update
 
     @property
     def test_name(self):
@@ -73,11 +81,12 @@ class SnapshotSession(object):
         for line in reporting_lines('pytest'):
             tr.write_line(line)
 
-        if tr.config.option.snapshot_partial_update:
+        opt = tr.config.option
+        if opt.snapshot_update or opt.snapshot_partial_update:
             msg = (
-                "You used --snapshot-partial-update. "
-               "Beware that if you delete or rename tests, this partial update will keep the old snapshots. "
-               "Make sure you remove them manually or run a full --snapshot-update."
+                "Snapshots were updated without removing unvisited snapshots. "
+                "If you have deleted or renamed tests, old snapshots will be kept. "
+                "Run with --snapshot-full-update to remove them."
             )
             print(colored(msg, 'yellow', attrs=['bold']))
 
@@ -94,13 +103,12 @@ def snapshot(request):
 
 
 def pytest_terminal_summary(terminalreporter):
-    if terminalreporter.config.option.snapshot_update:
+    if terminalreporter.config.option.snapshot_full_update:
         for module in SnapshotModule.get_modules():
             module.delete_unvisited()
             module.save()
-    elif terminalreporter.config.option.snapshot_partial_update:
+    elif terminalreporter.config.option.snapshot_update or terminalreporter.config.option.snapshot_partial_update:
         for module in SnapshotModule.get_modules():
-            # for partial update don't delete unvisited snapshots
             module.save()
 
     terminalreporter.config._snapshotsession.display(terminalreporter)
@@ -112,5 +120,11 @@ def pytest_terminal_summary(terminalreporter):
 
 @pytest.mark.trylast  # force the other plugins to initialise, fixes issue with capture not being properly initialised
 def pytest_configure(config):
+    opt = config.option
+    if opt.snapshot_full_update and (opt.snapshot_update or opt.snapshot_partial_update):
+        raise pytest.UsageError(
+            "--snapshot-full-update cannot be combined with "
+            "--snapshot-update or --snapshot-partial-update"
+        )
     config._snapshotsession = SnapshotSession(config)
     # config.pluginmanager.register(bs, "snapshottest")
